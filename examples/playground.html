@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClayCraft · The woodland courier</title>
+<style>
+  * { box-sizing: border-box }
+  body { margin: 0; background: #f3ecdd; color: #382f27; font: 16px system-ui, sans-serif }
+  canvas { display: block; width: 100vw; height: 100dvh }
+  header, footer { position: absolute; left: 6vw; right: 6vw }
+  header { top: 5vh; pointer-events: none }
+  h1 { margin: 0; font: 500 clamp(28px,5vw,58px)/1.05 Georgia,serif; letter-spacing: -.045em }
+  footer { bottom: 4vh; text-align: center }
+  nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px }
+  button { color: inherit; border: 1px solid #b5a991; background: #faf7f0; border-radius: 2em; padding: .55em 1.1em; font: inherit; cursor: pointer }
+  button[aria-pressed=true] { background: #3e513c; color: white; border-color: #3e513c }
+  p { margin: .65em 0 0; font-size: 14px }
+</style>
+<header><h1>The woodland courier</h1></header>
+<canvas aria-label="Animated clay courier and mushroom props"></canvas>
+<footer><nav aria-label="Preview action"></nav><p>← → move · Shift to run · Space to jump</p></footer>
+<script type="importmap">
+{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const loader = new GLTFLoader();
+const [courier, mushroom] = await Promise.all([
+  loader.loadAsync('./courier.glb'), loader.loadAsync('./mushroom.glb')
+]);
+const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('canvas'), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf3ecdd);
+const camera = new THREE.OrthographicCamera();
+camera.position.set(1.55, 1.65, 5);
+camera.lookAt(0, 0.80, 0);
+scene.add(new THREE.HemisphereLight(0xfff5df, 0xdac1a0, 2.0));
+const sun = new THREE.DirectionalLight(0xffe7bd, 2.2);
+sun.position.set(-3, 5, 4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.normalBias = 0.009;
+scene.add(sun);
+const stage = new THREE.Mesh(new THREE.CylinderGeometry(2.55, 2.50, 0.13, 96), new THREE.MeshStandardMaterial({ color: 0xc7b398 }));
+stage.scale.z = 0.55;
+stage.position.y = -0.065;
+stage.receiveShadow = true;
+scene.add(stage, courier.scene);
+for (const [horizontal, depth, scale] of [[-1.20,-0.22,0.92],[-0.94,-0.31,0.59],[1.12,-0.40,0.75]]) {
+  const prop = mushroom.scene.clone();
+  prop.position.set(horizontal, 0, depth);
+  prop.scale.setScalar(scale);
+  scene.add(prop);
+}
+scene.traverse(node => { if (node.isMesh) node.castShadow = true; });
+const mixer = new THREE.AnimationMixer(courier.scene);
+const actions = Object.fromEntries(courier.animations.map(clip => [clip.name, mixer.clipAction(clip)]));
+const keys = new Set();
+let current;
+let jumpTime = 0;
+function select(name, restart = false) {
+  if (name === current && !restart) return;
+  if (current) actions[current].fadeOut(0.09);
+  current = name;
+  const action = actions[name];
+  const once = name === 'Jump' || name === 'Wave';
+  action.reset().setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
+  action.clampWhenFinished = once;
+  action.fadeIn(0.09).play();
+  jumpTime = 0;
+  for (const button of document.querySelectorAll('button')) {
+    button.setAttribute('aria-pressed', String(button.textContent === name));
+  }
+}
+function movement() {
+  if (keys.has('ArrowLeft') === keys.has('ArrowRight')) return 'Idle';
+  return keys.has('Shift') ? 'Run' : 'Walk';
+}
+mixer.addEventListener('finished', event => { if (event.action === actions[current]) select(movement()); });
+for (const name of ['Idle', 'Walk', 'Run', 'Jump', 'Wave']) {
+  const button = document.createElement('button');
+  button.textContent = name;
+  button.onclick = () => select(name, true);
+  document.querySelector('nav').append(button);
+}
+select('Idle');
+for (const type of ['keydown', 'keyup']) {
+  window.addEventListener(type, event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Shift', ' '].includes(event.key)) return;
+    if (event.key === ' ' && event.target.tagName === 'BUTTON') return;
+    event.preventDefault();
+    if (event.repeat) return;
+    if (type === 'keydown') keys.add(event.key);
+    else keys.delete(event.key);
+    if (event.key === ' ' && type === 'keydown' && current !== 'Jump') select('Jump');
+    else if (current !== 'Jump' && current !== 'Wave') select(movement());
+  });
+}
+window.addEventListener('blur', () => { keys.clear(); select('Idle'); });
+function resize() {
+  const width = window.innerWidth, height = window.innerHeight;
+  const span = Math.max(2.58, 3.0 * height / width);
+  camera.top = span / 2; camera.bottom = -camera.top;
+  camera.right = camera.top * width / height; camera.left = -camera.right;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height, false);
+}
+window.addEventListener('resize', resize);
+resize();
+let previous = performance.now();
+renderer.setAnimationLoop(now => {
+  const delta = Math.max(0, Math.min((now - previous) / 1000, 0.05));
+  previous = now;
+  const direction = Number(keys.has('ArrowRight')) - Number(keys.has('ArrowLeft'));
+  courier.scene.position.x = THREE.MathUtils.clamp(courier.scene.position.x + direction * delta * (keys.has('Shift') ? 1.4 : 0.7), -1.85, 1.85);
+  courier.scene.rotation.y = THREE.MathUtils.damp(courier.scene.rotation.y, direction * 1.38, 11, delta);
+  jumpTime += delta;
+  courier.scene.position.y = current === 'Jump' ? 0.35 * Math.sin(Math.PI * THREE.MathUtils.clamp((jumpTime - 0.17) / 0.66, 0, 1)) : 0;
+  mixer.update(delta);
+  renderer.render(scene, camera);
+});
+</script>
+</html>

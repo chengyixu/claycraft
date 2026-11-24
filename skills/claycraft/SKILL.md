@@ -1,11 +1,13 @@
 ---
 name: claycraft
-description: Generate visual assets in a handmade miniature clay style, including isolated props, character figures, matching sets and tabletop dioramas. Use for claycraft, hand-sculpted clay or plasticine asset requests.
+description: Create handmade miniature clay props, figures, dioramas and game assets. Use for clay or plasticine art, procedural 3D models, and rigged characters with playable movement and action clips.
 ---
 
 # Claycraft
 
 Make the requested subject look small enough to hold and shaped by hand. For an image request, render and deliver the asset with the available image-generation tool. For an editable model request, build the same forms in the requested 3D format. Keep the brief’s subject, colors, dimensions and background treatment.
+
+For game assets, follow [Game assets](references/game-assets.md). Build the geometry locally. The bundled Blender script exports an animated courier or a matching static prop and serves as an editable recipe for other subjects. For movement requests, deliver the clips inside the model and check playback in the target engine.
 
 ## Choose a visual reference
 

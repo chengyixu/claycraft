@@ -4,7 +4,7 @@
 
 | Game asset | What you get |
 | --- | --- |
-| [Woodland courier](examples/courier.glb) | A rabbit-hooded figure with a satchel, a six-joint rig, and `Idle`, `Walk`, `Run`, `Jump` and `Wave` clips. |
+| [Woodland courier](examples/courier.glb) | A figure in a folded travelling cap and draped cape, carrying a sealed letter. Includes a six-joint rig and `Idle`, `Walk`, `Run`, `Jump` and `Wave` clips. |
 | [Spotted mushroom](examples/mushroom.glb) | A static prop with the same palette, scale and material treatment. |
 
 Import the GLBs directly into a game. The courier animates in place so your controller can set its speed, direction and jump height.

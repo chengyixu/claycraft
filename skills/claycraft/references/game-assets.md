@@ -11,7 +11,7 @@ blender -b --factory-startup --python-exit-code 1 -P scripts/build_asset.py -- -
 blender -b --factory-startup --python-exit-code 1 -P scripts/build_asset.py -- --asset mushroom --output game/assets/mushroom.glb
 ```
 
-On macOS the executable may be `/Applications/Blender.app/Contents/MacOS/Blender`. Use a fresh output path to keep an earlier export. Each GLB is self-contained. Both use meters, a ground-level origin, +Y up and +Z forward in glTF. The courier is about 1.62 m tall including its ears. Each asset uses one mesh and one vertex-colored material. The courier has one six-joint skin with rigidly attached clay pieces.
+On macOS the executable may be `/Applications/Blender.app/Contents/MacOS/Blender`. Use a fresh output path to keep an earlier export. Each GLB is self-contained. Both use meters, a ground-level origin, +Y up and +Z forward in glTF. The courier is about 1.51 m tall including its travelling cap. Each asset uses one mesh and one vertex-colored material with an embedded procedural grain normal map. The courier has one six-joint skin with rigidly attached clay pieces.
 
 | Clip | Duration | Playback |
 | --- | --- | --- |
@@ -35,6 +35,8 @@ For a one-shot, use `setLoop(THREE.LoopOnce, 1)`, `reset()` and `play()` on the 
 ## Sculpt another subject
 
 Copy the script into the game's asset source directory. Replace the piece recipe in `courier()` or `mushroom()` with the requested subject. Each `clay_piece` takes a joint (or `None` for a prop), label, center, three radii, palette color and optional tilt in degrees. The recipe uses Blender coordinates with Z up and the face toward −Y. Place the lowest contact patch at ground level. For holes, flat panels or carved edges, substitute an appropriate mesh and give it the same `Clay` vertex-color attribute before joining.
+
+Use `thrown()` to shape a garment or prop from offset rings. Pull the rings sideways for a bent stem or folded hat, widen the hem of a cape, and flatten the bottom two rings for a weight-bearing foot. Use `strand()` for narrow raised details such as laces. Compare a rendered close-up with the bundled lineup before delivery. Check for a rolled or pinched edge in silhouette, a clear overlap between layers, a shadow where soles touch the floor, and pores that recede at playing distance.
 
 Place joint pivots in `JOINTS` at the actual shoulders, hips and neck. Attach accessories to the part that carries them. For wings, tails or a different body plan, add the corresponding joints and groups. Author the requested action in `pose()` and register its name and length in `animate()`. The starter bones point up in rest pose; their local Y axis is vertical. Set the first and last pose equal for loops. Let the game controller own travel distance, collision shapes and interaction timing.
 

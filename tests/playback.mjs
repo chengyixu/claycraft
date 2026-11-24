@@ -1,7 +1,7 @@
 // From a checkout with Three.js installed, pass the two freshly exported GLBs.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { AnimationMixer, Box3, LoopOnce, Vector3 } from 'three';
+import { AnimationMixer, Box3, LoopOnce, Texture, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const expected = { Idle: 2, Walk: 1, Run: 2 / 3, Jump: 1, Wave: 1.5 };
@@ -9,7 +9,19 @@ const [courierPath, mushroomPath] = process.argv.slice(2);
 
 async function load(path) {
   const bytes = await readFile(path);
-  const model = await new GLTFLoader().parseAsync(
+  const loader = new GLTFLoader();
+  loader.register(parser => ({
+    name: 'EmbeddedPngCheck',
+    async loadTexture(index) {
+      const image = parser.json.images[parser.json.textures[index].source];
+      assert.equal(image.mimeType, 'image/png');
+      const data = Buffer.from(await parser.getDependency('bufferView', image.bufferView));
+      assert.equal(data.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+      assert.ok(data.readUInt32BE(16) >= 256 && data.readUInt32BE(20) >= 256);
+      return new Texture();
+    }
+  }));
+  const model = await loader.parseAsync(
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), ''
   );
   const meshes = [];
@@ -17,6 +29,7 @@ async function load(path) {
   assert.equal(meshes.length, 1);
   const [mesh] = meshes;
   assert.ok(mesh.material.vertexColors);
+  assert.ok(mesh.material.normalMap, 'portable relief material');
   for (const attr of Object.values(mesh.geometry.attributes)) {
     assert.ok(attr.array.every(Number.isFinite), attr.name);
   }
